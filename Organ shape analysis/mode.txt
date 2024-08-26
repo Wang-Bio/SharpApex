@@ -1,0 +1,4 @@
+major_mode
+curvature_analysis
+minor_mode
+batch
