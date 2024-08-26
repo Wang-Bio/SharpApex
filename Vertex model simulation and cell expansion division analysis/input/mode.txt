@@ -1,0 +1,4 @@
+major_mode
+experiment
+minor_mode
+background_remove_single

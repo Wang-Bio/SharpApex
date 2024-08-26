@@ -1,0 +1,589 @@
+//testing:
+    //0. organ_geo::organ_ordered_anticlockwise_boundary passed
+    //1. passed
+    //2. now checking line_geo::intersection_line_segment_circle
+    //find boundary points with equal euclidean distance on a close contour
+    vector<Vertex*> organ_boundary_points_euclidean_(Organ* p_g, double boundary_distance){
+        
+        vector<Vertex*> boundary_points;
+
+        //0. get boundary vertex nad boundary lines sorted in anticlockwise direction;
+        Ordered_boundary ordered_boundary_tmp = organ_geo::organ_ordered_anticlockwise_boundary(p_g);
+        //cout_fout_debug::fout_vector_vertex(ordered_boundary_tmp.vi,"ordered_boundary_tmp.txt");
+
+        
+        //1. the first boundary points: the surface vertices with lowest y position
+        boundary_points.push_back(ordered_boundary_tmp.vi[0]);
+        //cout<<"The first boundary point "<<ordered_boundary_tmp.vi[0]->loc.x<<","<<ordered_boundary_tmp.vi[0]->loc.y<<endl;
+
+        //2. the secondary boundary point
+        
+            //2.1 draw circle on the first point
+            Circle cir_0;
+            cir_0.center = boundary_points[0]->loc;
+            cir_0.radius = boundary_distance;
+            //cout<<"The first circle center: "<<boundary_points[0]->loc.x<<","<<boundary_points[0]->loc.y<<endl;
+            //2.2 find the cross point between circle_tmp and contour; there should be only one cross point
+            int current_boundary_line=0;
+            for( ; current_boundary_line<(int)ordered_boundary_tmp.li.size(); ){
+                //calculate the intersection between the boundary line (segment) and the circle
+                Intersection_relationship ls_0_cir_0 = line_geo::intersection_line_segment_circle(p_g, ordered_boundary_tmp.li[current_boundary_line],cir_0);
+                //cout<<"The first bounday line (index) is "<<ordered_boundary_tmp.li[current_boundary_line]<<endl;
+                //cout<<"The intersection relationship for first circle is "<<ls_0_cir_0.Relationship<<endl;
+                //cout<<"The intersection is "<<ls_0_cir_0.cross_points[0].loc.x<<","<<ls_0_cir_0.cross_points[0].loc.y<<endl;                
+                if(ls_0_cir_0.Relationship==0){
+                    current_boundary_line++;
+                }
+                else if(ls_0_cir_0.Relationship==1){
+                    //the intersection must be between new boundary_point and untouched boundary vertex
+                    Line_Segment ls_0;
+                    ls_0.d1 = *ordered_boundary_tmp.vi[current_boundary_line+1];
+                    ls_0.d2.loc = cir_0.center;
+                    //ls_0.d1.print_Cartesian();
+                    //ls_0.d2.print_Cartesian();
+                    double dist_bool = ls_0.distance_from_point(ls_0_cir_0.cross_points[0]);
+                    //cout<<"dist "<<dist_bool<<endl;
+                    if(dist_bool!=0){
+                        current_boundary_line++;
+                    }else{
+                        boundary_points.push_back(&ls_0_cir_0.cross_points[0]);
+                        goto organ_boundary_points_euclidean_end_second_point;
+                    }
+                    
+                }
+                else if(ls_0_cir_0.Relationship==2){
+                    Line_Segment ls_0;
+                    ls_0.d1 = *ordered_boundary_tmp.vi[current_boundary_line+1];
+                    ls_0.d2.loc = cir_0.center;
+                    double dist_bool0 = ls_0.distance_from_point(ls_0_cir_0.cross_points[0]);
+                    double dist_bool1 = ls_0.distance_from_point(ls_0_cir_0.cross_points[1]);
+                    if(dist_bool0+dist_bool1==0){
+                        current_boundary_line++;
+                    }
+                    else if(dist_bool0==1&&dist_bool1==0){
+                        boundary_points.push_back(&ls_0_cir_0.cross_points[0]);
+                    }
+                    else if(dist_bool0==0&&dist_bool1==1){
+                        boundary_points.push_back(&ls_0_cir_0.cross_points[1]);
+                    }else{
+                        cout<<"There are two cross points between circle and line segment!"<<endl;
+                    }
+                    goto organ_boundary_points_euclidean_end_second_point;
+                }
+            }
+            organ_boundary_points_euclidean_end_second_point:;
+            cout<<"The second boundary point is "<<boundary_points[1]->loc.x<<","<<boundary_points[1]->loc.y<<endl;
+            
+        //3. the third boundary point and the following boundary point
+            for(;current_boundary_line<(int)ordered_boundary_tmp.li.size();){
+                //3.1 draw circle on the curent boundary point
+                Circle cir_i;
+                cir_i.center = boundary_points[boundary_points.size()-1]->loc;
+                cir_i.radius = boundary_distance;
+                cout<<"The "<<boundary_points.size()<< "-th circle center: "<<boundary_points[boundary_points.size()-1]->loc.x<<","<<boundary_points[boundary_points.size()-1]->loc.y<<endl;
+                //3.2 find the crosspoint between circle_i and contour: 
+                for(;current_boundary_line<(int)ordered_boundary_tmp.li.size();){
+                    //3.2.1 find the crosspoint between circle_i and line li
+                    Intersection_relationship ls_i_cir_i = line_geo::intersection_line_segment_circle(p_g, ordered_boundary_tmp.li[current_boundary_line],cir_i);
+                    cout<<"Before check, the intersection relationship for "<<boundary_points.size()<<"-th circle and "<<current_boundary_line<<"-th Line is "<<ls_i_cir_i.Relationship<<endl;
+                    //this crosspoint should not be the previous boundary point
+                    if(ls_i_cir_i.Relationship==1)
+                    {   
+                        //cout<<"distance from the crosspoint and the previous boundary point "<<ls_i_cir_i.cross_points[0].distance_from_vertex(*boundary_points[boundary_points.size()-1]);
+                        cout<<"CrossPoint position "<<ls_i_cir_i.cross_points[0].loc.x<<","<<ls_i_cir_i.cross_points[0].loc.y<<endl;
+                        cout<<"Previous boundary point "<<boundary_points[boundary_points.size()-2]->loc.x<<","<<boundary_points[boundary_points.size()-2]->loc.y<<endl;
+                        if(ls_i_cir_i.cross_points[0].same_vertex(*boundary_points[boundary_points.size()-2])==1)
+                        {
+                            ls_i_cir_i.Relationship=ls_i_cir_i.Relationship-1;
+                            //ls_i_cir_i.cross_points[0] = ls_i_cir_i.cross_points[1];
+                        }
+                    }
+                    
+                    //if(ls_i_cir_i.cross_points[1].same_vertex(*boundary_points[boundary_points.size()-1])==1){
+                    //    ls_i_cir_i.Relationship-=1;
+                    //}
+                    cout<<"After checking, the intersection relationship for "<<boundary_points.size()<<"-th circle and "<<current_boundary_line<<"-th Line is "<<ls_i_cir_i.Relationship<<endl;
+                    cout<<"The intersection is "<<ls_i_cir_i.cross_points[0].loc.x<<","<<ls_i_cir_i.cross_points[0].loc.y<<endl;                
+
+                    if(ls_i_cir_i.Relationship==0){
+                        //no intersection, go to next boundary line
+                        current_boundary_line++;
+                        cout<<"There is no new intersections between "<<boundary_points.size()<<"-th circle and "<<current_boundary_line-1<<"-th Line"<<endl;
+                    }
+                    else if(ls_i_cir_i.Relationship==1){
+                        //the intersection must be between new boundary_point and untouched boundary vertex
+                        Line_Segment ls_i;
+                        ls_i.d1 = *ordered_boundary_tmp.vi[current_boundary_line+1];
+                        ls_i.d2.loc = cir_i.center;
+                        double dist_bool = ls_i.distance_from_point(ls_i_cir_i.cross_points[0]);
+                        if(dist_bool!=0){
+                            current_boundary_line++;
+                        }else{
+                            boundary_points.push_back(&ls_i_cir_i.cross_points[0]);
+                            cout<<"The "<<boundary_points.size()<<" boundary point's position is "<<boundary_points[boundary_points.size()-1]->loc.x<<","<<boundary_points[boundary_points.size()-1]->loc.y<<endl;
+                            goto organ_boundary_points_euclidean_end_i_th_point;
+                        }
+                    }
+                    else if(ls_i_cir_i.Relationship==2){
+                        Line_Segment ls_i;
+                        ls_i.d1 = *ordered_boundary_tmp.vi[current_boundary_line+1];
+                        ls_i.d2.loc = cir_i.center;
+                        double dist_bool0 = ls_i.distance_from_point(ls_i_cir_i.cross_points[0]);
+                        double dist_bool1 = ls_i.distance_from_point(ls_i_cir_i.cross_points[1]);
+                        if(dist_bool0+dist_bool1==0){
+                            current_boundary_line++;
+                        }
+                        else if(dist_bool0==1&&dist_bool1==0){
+                            boundary_points.push_back(&ls_i_cir_i.cross_points[0]);
+                            goto organ_boundary_points_euclidean_end_i_th_point;
+                        }
+                        else if(dist_bool0==0&&dist_bool1==1){
+                            boundary_points.push_back(&ls_i_cir_i.cross_points[1]);
+                            goto organ_boundary_points_euclidean_end_i_th_point;
+                        }else{
+                            cout<<"There are two cross points between circle and line segment!"<<endl;
+                            goto organ_boundary_points_euclidean_end_i_th_point;
+                        }
+                        
+                    }
+                }
+                organ_boundary_points_euclidean_end_i_th_point:;
+            }
+        //4. check the distance between the last boundary and the first boundary point
+            double dist_last_first = vertex_geo::vertex_distance(boundary_points[0],boundary_points[boundary_points.size()-1]);
+            cout<<"Distance between the last boundary point and the first boudary point is: "<<dist_last_first<<endl;
+        
+        //5. output the result to "boundary_points.txt"
+            //cout_fout_debug::fout_vector_vertex(boundary_points,"boundary_points.txt");
+
+
+        return boundary_points;
+    }
+
+
+
+
+    /*
+    //calculate the overlap index of the organ
+    double organ_overlap(Organ* p_g){
+    //initialization of all related variables
+    
+    //1. use incremental algorithm to generate an ordered array of outermost edges and vertices
+    
+    //1.1 add the first outermost edge
+    for(int li=0;li<p_g->p_l.size();li++){
+        if(p_g->p_l[li]->IsOutermost==1){
+            Line *pl_tmp = new Line;
+            pl_tmp = p_g->p_l[li];
+            pl_tmp->li = li;
+            p_g->surface_pl.push_back(pl_tmp);
+            
+            break;
+        }
+    }
+
+    //add the two surface vertices of the first outermost edge
+    p_g->surface_pv.push_back(p_g->p_v[p_g->surface_pl[0]->vi[0]]);
+    p_g->surface_pv[0]->vi = p_g->surface_pl[0]->vi[0];
+    //std::cout<<"p_g->surface_pv[0]->vi :"<<p_g->surface_pv[0]->vi<<endl;
+    p_g->surface_pv.push_back(p_g->p_v[p_g->surface_pl[0]->vi[1]]);
+    p_g->surface_pv[1]->vi = p_g->surface_pl[0]->vi[1];
+
+    //1.2 add the second outermost edge which connects with the first outermost edge (is surface, possess one same vertex, but don't have the same li)    
+    for(int li=0;li<p_g->p_l.size();li++){
+        if(p_g->p_l[li]->IsOutermost==1){
+            //an outermost edge
+            if(p_g->p_l[li]->vi[0]==p_g->surface_pl[0]->vi[0]||p_g->p_l[li]->vi[1]==p_g->surface_pl[0]->vi[0]||p_g->p_l[li]->vi[0]==p_g->surface_pl[0]->vi[1]||p_g->p_l[li]->vi[1]==p_g->surface_pl[0]->vi[1])
+            {
+                if(li!=p_g->surface_pl[0]->li){
+                   //this outermost edge share the one same vertex with the first outermost edge, and they don't have the same li
+                    Line *pl_tmp = new Line;
+                    pl_tmp = p_g->p_l[li];
+                    pl_tmp->li = li;
+                    p_g->surface_pl.push_back(pl_tmp);
+                    //add the third surface vertex (not the one share by these two outermost edges)
+                    if(p_g->p_l[li]->vi[0]==p_g->surface_pl[0]->vi[0]||p_g->p_l[li]->vi[0]==p_g->surface_pl[0]->vi[1]){
+                        p_g->surface_pv.push_back(p_g->p_v[p_g->p_l[li]->vi[1]]);
+                        p_g->surface_pv[p_g->surface_pv.size()-1]->vi = p_g->p_l[li]->vi[1];
+                    }
+                    if(p_g->p_l[li]->vi[1]==p_g->surface_pl[0]->vi[0]||p_g->p_l[li]->vi[1]==p_g->surface_pl[0]->vi[1]){
+                        p_g->surface_pv.push_back(p_g->p_v[p_g->p_l[li]->vi[0]]);
+                        p_g->surface_pv[p_g->surface_pv.size()-1]->vi = p_g->p_l[li]->vi[0];
+                    }
+                    
+                    goto break_if_1;
+                }
+            }
+        }
+    }
+    break_if_1:;
+    
+
+
+    //1.3 incremental algorithm to add third, ..., n th outermost edges and surface vertices
+    for(int i=1;i<(p_g->N_epi_cell-1);i++){ //search steps
+        for(int li=0;li<p_g->p_l.size();li++){ //loop for all lines, index li
+            if(p_g->p_l[li]->IsOutermost==1){ //if line li is an outermost line
+                if(p_g->p_l[li]->vi[0]==p_g->surface_pl[i]->vi[0]||p_g->p_l[li]->vi[1]==p_g->surface_pl[i]->vi[0]||p_g->p_l[li]->vi[0]==p_g->surface_pl[i]->vi[1]||p_g->p_l[li]->vi[1]==p_g->surface_pl[i]->vi[1])
+                { //if line li has a vertex that has the same index as surface_pl i
+                    if(li!=p_g->surface_pl[i-1]->li&&li!=p_g->surface_pl[i]->li){ //line li is not surface_pl i-1, avoid the repeat
+                        Line *pl_tmp = new Line; 
+                        pl_tmp = p_g->p_l[li];
+                        pl_tmp->li = li;
+                        p_g->surface_pl.push_back(pl_tmp); //recognize line li as a new surface_pl
+                        
+
+                        if(i!=(p_g->N_epi_cell-2)){
+                            if(p_g->p_l[li]->vi[0]==p_g->surface_pl[i]->vi[0]||p_g->p_l[li]->vi[0]==p_g->surface_pl[i]->vi[1]){
+                                p_g->surface_pv.push_back(p_g->p_v[p_g->p_l[li]->vi[1]]);
+                                
+                                p_g->surface_pv[p_g->surface_pv.size()-1]->vi = p_g->p_l[li]->vi[1];
+                            }
+                            if(p_g->p_l[li]->vi[1]==p_g->surface_pl[i]->vi[0]||p_g->p_l[li]->vi[1]==p_g->surface_pl[i]->vi[1]){
+                                p_g->surface_pv.push_back(p_g->p_v[p_g->p_l[li]->vi[0]]);
+                                p_g->surface_pv[p_g->surface_pv.size()-1]->vi = p_g->p_l[li]->vi[0];
+                            }
+                        }
+                        
+                        
+                            
+                        goto break_if_2;
+                    }
+                }
+            }
+        }
+        break_if_2:;
+
+        //find intersection points between surface line (they may also become boundary vertex)
+
+
+        
+
+        //find if two surface lines (the newly added line i and other lines other than i-1)  have intersection during incremental loop
+        //if they have, delete the inside lines (index between the indices of the two intersected lines)
+        //and delete vertices (index between the upper vertex index of the lower line and the lowe vertex index of the upper line)
+        
+        
+        
+    }
+    for(int pvi=0; pvi<(int)p_g->surface_pv.size();pvi++){
+        p_g->surface_pv[pvi]->vi_array = pvi;
+    }
+
+    for(int li=0; li<(int)p_g->p_l.size();li++){
+        p_g->p_l[li]->ordered_array=0;
+    }
+
+    for(int pli=0; pli<(int)p_g->surface_pl.size();pli++){
+        p_g->p_l[p_g->surface_pl[pli]->li]->ordered_array=pli;
+    }
+
+
+   
+
+    //2. find if these following line pairs have intersections
+    //1. 0, 2
+    //2. 0, 3; 1, 3 
+    //3. 0, 4; 1, 4; 2, 4
+    //.....
+    //n-1. 0, n-1; 1, n-1; 2, n-1; .... ; n-3, n-1
+    //n. (no 0, n); 1, n; 2, n ; .... ; n-2, n (n is the biggest line index)
+    for(int i=2;i<((int)p_g->surface_pl.size()-1);i++){
+        //2 - n-1
+   
+        for(int inti=0; inti<i-1;inti++){
+                
+                //when we know a line has two points (x1,y1) and (x2,y2), then we know that the equation for this line is
+                //y=(y1-y2)/(x1-x2)x + (x1y2-x2y1)/(x1-x2)
+                //for line i: its a1 = (p_g->surface_pv[i+1]->loc.y-p_g->surface_pv[i]->loc.y)/(p_g->surface_pv[i+1]->loc.x-p_g->surface_pv[i]->loc.x)
+                //method to calculate interstion: line 1 is y=a1x+b1, line 2 is y=a2x+b2
+                //then their intersection is x = (b1-b2)/(a2-a1), y = (a2b1-a1b2)/(a2-a1)
+                _vec<double> intersection = {0.0,0.0,0.0};
+                double xi1, xi2, yi1, yi2, xj1, xj2, yj1, yj2 =0;
+                if(i!= ((int)p_g->surface_pl.size()-1)){
+                    xi1 = p_g->surface_pv[i]->loc.x;
+                    xi2 = p_g->surface_pv[i+1]->loc.x;
+                    yi1 = p_g->surface_pv[i]->loc.y;
+                    yi2 = p_g->surface_pv[i+1]->loc.y;
+                }
+                else if(i == (int)p_g->surface_pl.size()-1){
+                    xi1 = p_g->surface_pv[i]->loc.x;
+                    xi2 = p_g->surface_pv[0]->loc.x;
+                    yi1 = p_g->surface_pv[i]->loc.y;
+                    yi2 = p_g->surface_pv[0]->loc.y;
+                }
+                xj1 = p_g->surface_pv[inti]->loc.x;
+                xj2 = p_g->surface_pv[inti+1]->loc.x;
+                yj1 = p_g->surface_pv[inti]->loc.y;
+                yj2 = p_g->surface_pv[inti+1]->loc.y;
+
+                double a1,b1,a2,b2=0;
+                    a1 = (yi1-yi2)/(xi1-xi2);
+                    a2 = (yj1-yj2)/(xj1-xj2);
+                    b1 = (xi1*yi2 - xi2*yi1)/(xi1-xi2);
+                    b2 = (xj1*yj2 - xj2*yj1)/(xj1-xj2);
+                
+                intersection.x = (b1-b2)/(a2-a1);
+                intersection.y = (a2*b1-a1*b2)/(a2-a1);
+
+                double max_xi, max_yi, min_xi, min_yi, max_xj, max_yj, min_xj, min_yj=0;
+                    max_xi = max(xi1, xi2);
+                    max_yi = max(yi1, yi2);
+                    min_xi = min(xi1, xi2);
+                    min_yi = min(yi1, yi2);
+                    max_xj = max(xj1, xj2);
+                    max_yj = max(yj1, yj2);
+                    min_xj = min(xj1, xj2);
+                    min_yj = min(yj1, yj2);
+              
+                if(intersection.x<max_xi&&intersection.x>min_xi&&intersection.y<max_yi&&intersection.y>min_yi&&intersection.x<max_xj&&intersection.x>min_xj&&intersection.y<max_yj&&intersection.y>min_yj){
+                    Vertex *intersection_tmp = new Vertex;
+                    intersection_tmp->loc.x = intersection.x;
+                    intersection_tmp->loc.y = intersection.y;
+                    intersection_tmp->loc.z = 0.0;
+                     //std::cout<<"Intersection found!"<<endl;
+                    intersection_tmp->li.push_back(p_g->surface_pl[inti]->li); //this intersection point belongs to line inti
+                    intersection_tmp->li.push_back(p_g->surface_pl[i]->li); //this intersection point belongs to line li
+                    intersection_tmp->li_array.push_back(inti);
+                    intersection_tmp->li_array.push_back(i);
+                    //find which cells this intersection point belongs to
+                    intersection_tmp->ci.push_back(p_g->surface_pl[inti]->ci[0]); //it is a surface line, so it only belongs to one cell
+                    intersection_tmp->ci.push_back(p_g->surface_pl[i]->ci[0]);
+
+                    p_g->intersection.push_back(intersection_tmp);
+                    //std::cout<<"intersection and its intersected lines"<<std::endl;
+                    //for(int pvi=0; pvi<(int)p_g->intersection.size();pvi++){
+                    //   std::cout<<pvi<<" "<<p_g->intersection[pvi]->li[0]<<" "<<p_g->intersection[pvi]->li[1]<<std::endl;
+                    //}
+                }          
+            
+        }
+    
+    }
+
+     
+    //debug: intersections
+    //std::cout<<"intersection and the intersected lines"<<std::endl;
+    
+    //for(int pvi=0; pvi<(int)p_g->intersection.size();pvi++){
+    //    std::cout<<pvi<<" "<<p_g->intersection[pvi]->li[0]<<" "<<p_g->intersection[pvi]->li[1]<<std::endl;
+    //}
+    
+
+    //3. PIP algorithm to find the real boundary vertices from candidates (surface vertices and intersections)
+    //find if surface vertex is inside other cells 
+    for(int i=0; i<(int)p_g->surface_pv.size();i++){
+        bool real_surface_pv=1;
+        for(int ci=0; ci<(int)p_g->p_c.size();ci++){
+            if(count(p_g->p_v[p_g->surface_pv[i]->vi]->ci.begin(),p_g->p_v[p_g->surface_pv[i]->vi]->ci.end(),ci)==0){
+                //check cells other than this vertex orginally belongs to
+                //PIP to find if surface vertex i is inside cell ci
+                int ray_count=0;
+            for(int li=0; li<(int)p_g->p_c[ci]->li.size();li++){
+                //check if the ray from surface vertex i to infinite large x has intersection with line li
+                double xi, yi, xj1, xj2, yj1, yj2 =0;
+                
+                xi = p_g->surface_pv[i]->loc.x;
+                yi = p_g->surface_pv[i]->loc.y;
+                
+                xj1 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[0]]->loc.x;
+                xj2 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[1]]->loc.x;
+                yj1 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[0]]->loc.y;
+                yj2 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[1]]->loc.y;
+
+
+                
+                if(geo::relaRS_1(xi,yi,xj1,yj1,xj2,yj2)){
+                        ray_count++;
+                    }
+                }
+
+                if(ray_count%2 ==1){
+                    //surface vertex i is inside cell ci, thus it is not a real boundary vertex
+                    //std::cout<<"Surface vertex "<<i<<" is inside cell "<<ci<<endl;
+                    real_surface_pv=0;
+                    
+                    goto break_for2;
+                }
+                else if(ray_count%2 == 0){
+                    //surface vertex i is not inside cell ci, continue to check whether surface vertex i is inside other cells
+                }
+            }
+        }
+        break_for2:;
+        if(real_surface_pv){
+            p_g->surface_pv_real.push_back(p_g->surface_pv[i]);
+        }
+    }
+    
+    //check if intersections are real boundary vertex => if these intersections are inside any cells other than the cells it originally belongs to
+    for(int i=0; i<(int)p_g->intersection.size();i++){
+        bool real_surface_pv=1;
+        for(int ci=0; ci<(int)p_g->p_c.size();ci++){
+            if(count(p_g->intersection[i]->ci.begin(),p_g->intersection[i]->ci.end(),ci)==0){
+                int ray_count=0;
+                for(int li=0; li<(int)p_g->p_c[ci]->li.size();li++){
+                    //check if the ray from surface vertex i to infinite large x has intersection with line li
+                    double xi, yi, xj1, xj2, yj1, yj2 =0;
+                    
+                    xi = p_g->intersection[i]->loc.x;
+                    yi = p_g->intersection[i]->loc.y;
+                    
+                    xj1 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[0]]->loc.x;
+                    xj2 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[1]]->loc.x;
+                    yj1 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[0]]->loc.y;
+                    yj2 = p_g->p_v[p_g->p_l[p_g->p_c[ci]->li[li]]->vi[1]]->loc.y;
+
+
+                    
+                    if(geo::relaRS_1(xi,yi,xj1,yj1,xj2,yj2)){
+                            ray_count++;
+                        }
+                    }
+
+                    if(ray_count%2 ==1){
+                        //surface vertex i is inside cell ci, thus it is not a real boundary vertex
+                        //std::cout<<"intersection "<<i<<" is inside cell "<<ci<<endl;
+                        real_surface_pv=0;
+                        
+                        goto break_for3;
+                    }
+                    else if(ray_count%2 == 0){
+                        //surface vertex i is not inside cell ci, continue to check whether surface vertex i is inside other cells
+                    }
+                }
+            } 
+        break_for3:;
+        if(real_surface_pv){
+            p_g->intersection_real.push_back(p_g->intersection[i]);
+        }
+    }
+   
+   
+    
+    //debug: real surface vertcies and real intersections
+    
+    //std::cout<<"Surface_pv_real, vi, vi_array"<<std::endl;
+    //for(int pvi=0; pvi<(int)p_g->surface_pv_real.size();pvi++){
+    //    std::cout<<pvi<<" "<<p_g->surface_pv_real[pvi]->vi<<" "<<p_g->surface_pv_real[pvi]->vi_array<<std::endl;
+    //}
+    
+    //std::cout<<"intersection_real and intersected lines, li_array"<<std::endl;
+    //for(int pvi=0; pvi<(int)p_g->intersection_real.size();pvi++){
+    //    std::cout<<pvi<<" "<<p_g->intersection_real[pvi]->li[0]<<" "<<p_g->intersection_real[pvi]->li[1]<<" "<<p_g->intersection_real[pvi]->li_array[0]<<" "<<p_g->intersection_real[pvi]->li_array[1]<<std::endl;
+    //}    
+
+   //4. reconstructruct the ordered array of the real boundary vertex;
+   //insert the intersection_real into where they belong to
+   //if intersection_real (k) is a intersection between line (pi,pi+1) and line (pj,pj+1) and j>i, notice that if pj=max, then pj+1 =0
+   //and assume that pii is the one left in surface_pv_real for pi and pi+1
+   //pjj is the one left in surface_pv_real for pj and pj+1
+   //then k should be insert between (pii, pjj) ,  make pjj larger than pii
+   
+   for(int i=0;i<(int)p_g->intersection_real.size();i++){
+       int pi = p_g->intersection_real[i]->li_array[0]; 
+       int pj = p_g->intersection_real[i]->li_array[1];
+       //make sure pj is larger than pi
+       if(pj<pi){
+           int tmp=pi;
+           pi = pj;
+           pj = tmp;
+       }
+       int pi2 = pi+1;
+       int pj2 = pj+1;
+        if(pj==p_g->surface_pv.size()){
+            pj2=0;
+        }
+        
+        //find which one of pi, pi2 and which one of pj, pj2 is left in surface_pv_real
+        int pi_real, pj_real=0;
+        vector<Vertex *> real_tmp = p_g->surface_pv_real;
+        for(int j=0; j<(int)real_tmp.size();j++){
+            if(real_tmp[j]->vi_array==pi){
+                pi_real = j;
+            }
+            if(real_tmp[j]->vi_array==pi2){
+                pi_real = j;
+            }
+            if(real_tmp[j]->vi_array==pj){
+                pj_real = j;
+            }
+            if(real_tmp[j]->vi_array==pj2){
+                pj_real = j;
+            }
+        }
+        //check if pi_real and pj_real are in ordered
+        if(pi_real==0){
+            if(pj_real!=(int)p_g->surface_pv_real.size()-1){
+                //std::cout<<"1 Bug in ordered array reconstruction for intersection_real "<<i<<endl;
+            }
+            //add this point to the last point of vector surface_pv_real
+            p_g->surface_pv_real.push_back(p_g->intersection_real[i]);
+        }
+        else{
+            if(pj_real != (pi_real +1)){
+                //std::cout<<"2 Bug in ordered array reconstruction for intersection_real "<<i<<endl;
+
+            }
+            //add this point between pi_real and pj_real of vector surface_pv_real
+            p_g->surface_pv_real.insert(p_g->surface_pv_real.begin()+pi_real+1,p_g->intersection_real[i]);
+        }
+        
+    //std::cout<<i<<" pi_real "<<pi_real<<" pj_real "<<pj_real<<endl;
+   }
+
+    
+   //debug: the ordered array of real surface vertcies and real intersections
+   
+   //std::cout<<"Surface_pv_real, vi, vi_array"<<std::endl;
+    //for(int pvi=0; pvi<(int)p_g->surface_pv_real.size();pvi++){
+    //    std::cout<<pvi<<" "<<p_g->surface_pv_real[pvi]->vi<<" "<<p_g->surface_pv_real[pvi]->vi_array<<std::endl;
+    //}
+
+   //5. calculate the area surrounded by ordered real boundary vertices;
+    //check the direction of vertices
+    //std::cout<<"real_boundary_vertices_index x y"<<endl;
+    //use shoelace algorithm to calculate the polygon area
+        double i_area =0;
+       
+       //i番目の細胞の面積を計算。点が反時計回りに格納されていることを前提にしている。
+    for (int i = 0; i < (int)p_g->surface_pv_real.size(); i++) {
+        Vertex *vp[2];
+        vp[0] = p_g->surface_pv_real[i];
+        if (i != (int)p_g->surface_pv_real.size() - 1) {
+            vp[1] = p_g->surface_pv_real[i+1];
+        }
+        else if (i == (int)p_g->surface_pv_real.size() - 1) {
+            vp[1] =  p_g->surface_pv_real[0];
+        }
+        else {
+            std::cout << "Bug.Area" << std::endl;
+            exit(0);
+        }
+        i_area += 0.5 * (vp[0]->loc.x * vp[1]->loc.y - vp[1]->loc.x * vp[0]->loc.y);
+        }
+    p_g->realArea = abs(i_area);
+    
+
+    //p_g->area
+    double area_tmp=0;
+    for(int ci=0;ci<(int)p_g->p_c.size();ci++){
+        area_tmp += p_g->p_c[ci]->area;
+    }
+    p_g->area = area_tmp;
+
+    double overlapArea = p_g->area - p_g->realArea;
+    double overlapIndex = overlapArea/p_g->realArea;
+    p_g->overlapArea = overlapArea;
+    p_g->overlap_index = overlapIndex;
+    if(abs(overlapIndex)<0.001){
+        //std::cout<<"No overlaps"<<endl;
+        p_g->overlap_index=0.0;
+        p_g->overlapArea=0.0;
+    }
+    //std::cout<<"area "<<p_g->area<<"; real area"<<p_g->realArea<<"; overlap area"<<p_g->overlapArea<<"; overlap index "<<p_g->overlap_index<<endl;
+    return overlapIndex;
+    }
+
+    */
+    
