@@ -4,8 +4,6 @@
 
 PlantVertexModel is a program used for simulate and analyze the plant organ morphogenesis based on cells behavior. The plant cells are abstracted as polygons (idealy, regular polygons), and the plant organs are abstracted as networks of polygons. Cell behavior including cell expansion, cell division in different spatial and temporal pattern can be performed to simulated the growing of plant organs (dynamics of polygon network).
 
-<img src="/Guide/model_introduction.jpg" alt="PlantVertexModel introduction" title="PlantVertexModel introduction" width="500"/>
-
 This Guide is divided into three parts:
 
 1. [PlantVertexModel User's Guide ](Guide/User's%20Guide): covers the basic rules and usage of PlantVertexModel. The related mathematical, physical and coding details could be found in the reference mannual. 
@@ -16,8 +14,6 @@ This Guide is divided into three parts:
 
 # 1. Basics of PlantVertexModel
 To do a PlantVertexModel simulation, we need the inputs, including mode.txt, which defines the mode we want to use; parameter.txt, gives the parameter values; InitialOrgan.txt, defines the initial shape of organ primordia. These inputs will initialize the simulation. The program will start to calculate cell expansion, cell division based on defined rules and input parameters. Finally, the program will output the organ geometric information on cell and organ, cell division records, system log and records. These outputs could be used to visualize and analyze the simulated organ morphogenesis. PlantVertexModel also provides analysis codes for the simulation results and also experiments results. 
-
-<img src="/Guide/flowchart_simulation.jpg" alt="The flowchart for simulation" title="Flowchart for PlantVertexModel Simulation" width="500"/>
 
 # 2. PlantVertexModel User's Guide
 * 2.1 Introduction to Vertex Model (What is Vertex Model and a Review of Previous Research)
