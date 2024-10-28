@@ -1,4 +1,5 @@
 # Welcome to the PlantVertexModel !
+(This code was also introduced and lectured during a seminar in the Periodicity and its Modulation in Plants by Zining Wang 2023/09, Hokkaido)
 
 # 0. What is PlantVertexModel
 
